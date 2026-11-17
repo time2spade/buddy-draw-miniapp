@@ -178,6 +178,31 @@ export default function HomePage() {
     }
   }
 
+  async function handleDeleteRoom() {
+    if (!room || !idToken) return;
+    if (!confirm(`ต้องการลบห้อง "${room.name}" (${room.code}) ใช่ไหม? ข้อมูลทั้งหมดในห้องนี้จะถูกลบถาวร`)) {
+      return;
+    }
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch(`/api/rooms/${room.code}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${idToken}`,
+        },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setRoom(null);
+      setJoinCodeInput("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "ลบห้องไม่สำเร็จ");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   if (!ready) {
     return (
       <main className="flex min-h-screen items-center justify-center p-6">
@@ -584,6 +609,18 @@ export default function HomePage() {
                 </div>
               ))}
             </section>
+          )}
+
+          {room.isHost && (
+            <div className="pt-2">
+              <button
+                onClick={handleDeleteRoom}
+                disabled={loading}
+                className="w-full rounded-xl border border-red-400/40 bg-red-500/15 py-2.5 text-xs font-semibold text-red-200 hover:bg-red-500/25 disabled:opacity-50"
+              >
+                🗑️ ลบห้องนี้ถาวร
+              </button>
+            </div>
           )}
         </div>
       )}

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { extractBearerToken, verifyLineIdToken } from "@/lib/lineVerify";
-import { getRoom, saveRoom } from "@/lib/roomStore";
+import { deleteRoom, getRoom, saveRoom } from "@/lib/roomStore";
 import { createBuddyAssignmentsWithExclusions } from "@/lib/derangement";
 
 export async function GET(
@@ -244,6 +244,41 @@ export async function POST(
     }
 
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });
+  } catch (err) {
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Server error" },
+      { status: 400 }
+    );
+  }
+}
+
+export async function DELETE(
+  req: Request,
+  context: { params: Promise<{ code: string }> }
+) {
+  try {
+    const token = extractBearerToken(req);
+    if (!token) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const user = await verifyLineIdToken(token);
+    const { code } = await context.params;
+    const room = await getRoom(code);
+
+    if (!room) {
+      return NextResponse.json({ error: "ไม่พบห้องจับฉลากนี้" }, { status: 404 });
+    }
+
+    if (room.hostId !== user.sub) {
+      return NextResponse.json(
+        { error: "เฉพาะผู้สร้างห้องเท่านั้นที่ลบห้องได้" },
+        { status: 403 }
+      );
+    }
+
+    await deleteRoom(code);
+    return NextResponse.json({ ok: true });
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Server error" },

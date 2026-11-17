@@ -110,6 +110,18 @@ export async function hasRoom(code: string): Promise<boolean> {
   return memoryStore.has(normalized);
 }
 
+export async function deleteRoom(code: string): Promise<void> {
+  const normalized = code.toUpperCase();
+  const redis = getRedisClient();
+
+  if (redis) {
+    await redis.del(`${ROOM_KEY_PREFIX}${normalized}`);
+    return;
+  }
+
+  memoryStore.delete(normalized);
+}
+
 export function generateRoomCode(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   let code = "";
